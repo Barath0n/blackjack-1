@@ -9,5 +9,6 @@ public enum RoundOutcome
     Push,
     PlayerBust,
     DealerBust,
-    Surrendered
+    Surrendered,
+    Mixed
 }

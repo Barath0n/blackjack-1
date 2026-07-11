@@ -37,4 +37,24 @@ public sealed class HandTests
 
         Assert.Equal(21, hand.Score);
     }
+
+    [Fact]
+    public void EqualCardValuesCanBeSplit()
+    {
+        Hand hand = new();
+        hand.Add(new Card(Suit.Spades, Rank.Ten));
+        hand.Add(new Card(Suit.Hearts, Rank.King));
+
+        Assert.True(hand.CanSplit);
+    }
+
+    [Fact]
+    public void DifferentCardValuesCannotBeSplit()
+    {
+        Hand hand = new();
+        hand.Add(new Card(Suit.Spades, Rank.Eight));
+        hand.Add(new Card(Suit.Hearts, Rank.Nine));
+
+        Assert.False(hand.CanSplit);
+    }
 }

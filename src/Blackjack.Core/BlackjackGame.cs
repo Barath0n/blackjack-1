@@ -2,45 +2,74 @@ namespace Blackjack.Core;
 
 public sealed class BlackjackGame
 {
+    private readonly List<PlayerHandState> _playerHands = [];
+    private readonly Random? _random;
+    private readonly int _reshuffleThreshold;
     private Deck _deck;
 
     public BlackjackGame(decimal startingBankroll = 500m, Random? random = null)
     {
-        if (startingBankroll <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(startingBankroll));
-        }
+        ValidateStartingBankroll(startingBankroll);
 
         Bankroll = startingBankroll;
+        _random = random;
+        _reshuffleThreshold = 15;
         _deck = new Deck(random);
+    }
+
+    internal BlackjackGame(decimal startingBankroll, IEnumerable<Card> drawOrder)
+    {
+        ValidateStartingBankroll(startingBankroll);
+
+        Bankroll = startingBankroll;
+        _reshuffleThreshold = 0;
+        _deck = new Deck(drawOrder);
     }
 
     public decimal Bankroll { get; private set; }
 
-    public decimal CurrentBet { get; private set; }
+    public decimal CurrentBet => _playerHands.Sum(hand => hand.Bet);
 
-    public Hand PlayerHand { get; } = new();
+    public IReadOnlyList<PlayerHandState> PlayerHands => _playerHands;
 
     public Hand DealerHand { get; } = new();
+
+    public int ActiveHandIndex { get; private set; } = -1;
+
+    public PlayerHandState? ActiveHand =>
+        ActiveHandIndex >= 0 && ActiveHandIndex < _playerHands.Count
+            ? _playerHands[ActiveHandIndex]
+            : null;
 
     public RoundState State { get; private set; } = RoundState.WaitingForBet;
 
     public RoundOutcome Outcome { get; private set; } = RoundOutcome.None;
 
+    public bool IsSplitRound => _playerHands.Count > 1;
+
     public bool IsDealerHoleCardHidden => State == RoundState.PlayerTurn;
 
-    public bool CanHit => State == RoundState.PlayerTurn;
+    public bool CanHit =>
+        State == RoundState.PlayerTurn &&
+        ActiveHand is { IsComplete: false };
 
-    public bool CanStand => State == RoundState.PlayerTurn;
+    public bool CanStand => CanHit;
 
     public bool CanDoubleDown =>
-        State == RoundState.PlayerTurn &&
-        PlayerHand.Cards.Count == 2 &&
-        Bankroll >= CurrentBet;
+        CanHit &&
+        ActiveHand!.Hand.Cards.Count == 2 &&
+        Bankroll >= ActiveHand.Bet;
+
+    public bool CanSplit =>
+        CanHit &&
+        _playerHands.Count == 1 &&
+        ActiveHand!.Hand.CanSplit &&
+        Bankroll >= ActiveHand.Bet;
 
     public bool CanSurrender =>
-        State == RoundState.PlayerTurn &&
-        PlayerHand.Cards.Count == 2;
+        CanHit &&
+        !IsSplitRound &&
+        ActiveHand!.Hand.Cards.Count == 2;
 
     public void StartRound(decimal bet)
     {
@@ -51,76 +80,64 @@ public sealed class BlackjackGame
 
         if (bet <= 0 || bet > Bankroll)
         {
-            throw new ArgumentOutOfRangeException(nameof(bet), "Bet must be positive and no higher than the bankroll.");
+            throw new ArgumentOutOfRangeException(
+                nameof(bet),
+                "Bet must be positive and no higher than the bankroll.");
         }
 
-        if (_deck.RemainingCards < 15)
+        if (_deck.RemainingCards < _reshuffleThreshold)
         {
-            _deck = new Deck();
+            _deck = new Deck(_random);
         }
 
-        PlayerHand.Clear();
+        _playerHands.Clear();
         DealerHand.Clear();
         Outcome = RoundOutcome.None;
+        ActiveHandIndex = 0;
 
-        CurrentBet = bet;
+        PlayerHandState playerHand = new(bet);
+        _playerHands.Add(playerHand);
+
         Bankroll -= bet;
 
-        PlayerHand.Add(_deck.Draw());
+        playerHand.Hand.Add(_deck.Draw());
         DealerHand.Add(_deck.Draw());
-        PlayerHand.Add(_deck.Draw());
+        playerHand.Hand.Add(_deck.Draw());
         DealerHand.Add(_deck.Draw());
-
-        if (PlayerHand.IsBlackjack || DealerHand.IsBlackjack)
-        {
-            ResolveInitialBlackjack();
-            return;
-        }
 
         State = RoundState.PlayerTurn;
+
+        if (playerHand.Hand.IsBlackjack || DealerHand.IsBlackjack)
+        {
+            ResolveInitialBlackjack();
+        }
     }
 
     public void Hit()
     {
-        EnsurePlayerTurn();
+        PlayerHandState hand = GetActiveHand();
 
-        PlayerHand.Add(_deck.Draw());
+        hand.Hand.Add(_deck.Draw());
 
-        if (PlayerHand.IsBust)
+        if (hand.Hand.IsBust)
         {
-            CompleteRound(RoundOutcome.PlayerBust);
+            hand.Outcome = RoundOutcome.PlayerBust;
+            hand.IsComplete = true;
+            AdvanceToNextHandOrDealer();
         }
-        else if (PlayerHand.Score == 21)
+        else if (hand.Hand.Score == 21)
         {
-            Stand();
+            hand.IsComplete = true;
+            AdvanceToNextHandOrDealer();
         }
     }
 
     public void Stand()
     {
-        EnsurePlayerTurn();
+        PlayerHandState hand = GetActiveHand();
 
-        while (DealerHand.Score < 17)
-        {
-            DealerHand.Add(_deck.Draw());
-        }
-
-        if (DealerHand.IsBust)
-        {
-            CompleteRound(RoundOutcome.DealerBust);
-        }
-        else if (PlayerHand.Score > DealerHand.Score)
-        {
-            CompleteRound(RoundOutcome.PlayerWin);
-        }
-        else if (PlayerHand.Score < DealerHand.Score)
-        {
-            CompleteRound(RoundOutcome.DealerWin);
-        }
-        else
-        {
-            CompleteRound(RoundOutcome.Push);
-        }
+        hand.IsComplete = true;
+        AdvanceToNextHandOrDealer();
     }
 
     public void DoubleDown()
@@ -130,18 +147,71 @@ public sealed class BlackjackGame
             throw new InvalidOperationException("Double down is not available.");
         }
 
-        Bankroll -= CurrentBet;
-        CurrentBet *= 2;
+        PlayerHandState hand = GetActiveHand();
 
-        PlayerHand.Add(_deck.Draw());
+        Bankroll -= hand.Bet;
+        hand.Bet *= 2;
+        hand.Hand.Add(_deck.Draw());
 
-        if (PlayerHand.IsBust)
+        if (hand.Hand.IsBust)
         {
-            CompleteRound(RoundOutcome.PlayerBust);
+            hand.Outcome = RoundOutcome.PlayerBust;
+        }
+
+        hand.IsComplete = true;
+        AdvanceToNextHandOrDealer();
+    }
+
+    public void Split()
+    {
+        if (!CanSplit)
+        {
+            throw new InvalidOperationException("Split is not available.");
+        }
+
+        PlayerHandState originalHand = GetActiveHand();
+        decimal splitBet = originalHand.Bet;
+        Card firstCard = originalHand.Hand.Cards[0];
+        Card secondCard = originalHand.Hand.Cards[1];
+
+        Bankroll -= splitBet;
+        _playerHands.Clear();
+
+        PlayerHandState firstHand = new(splitBet, isFromSplit: true);
+        firstHand.Hand.Add(firstCard);
+        firstHand.Hand.Add(_deck.Draw());
+
+        PlayerHandState secondHand = new(splitBet, isFromSplit: true);
+        secondHand.Hand.Add(secondCard);
+        secondHand.Hand.Add(_deck.Draw());
+
+        _playerHands.Add(firstHand);
+        _playerHands.Add(secondHand);
+        ActiveHandIndex = 0;
+
+        bool splitAces =
+            firstCard.Rank == Rank.Ace &&
+            secondCard.Rank == Rank.Ace;
+
+        if (splitAces)
+        {
+            firstHand.IsComplete = true;
+            secondHand.IsComplete = true;
+            ResolveDealerAndHands();
             return;
         }
 
-        Stand();
+        if (firstHand.Hand.Score == 21)
+        {
+            firstHand.IsComplete = true;
+        }
+
+        if (secondHand.Hand.Score == 21)
+        {
+            secondHand.IsComplete = true;
+        }
+
+        MoveToFirstIncompleteHandOrDealer();
     }
 
     public void Surrender()
@@ -151,45 +221,153 @@ public sealed class BlackjackGame
             throw new InvalidOperationException("Surrender is not available.");
         }
 
-        CompleteRound(RoundOutcome.Surrendered);
+        PlayerHandState hand = GetActiveHand();
+
+        hand.Outcome = RoundOutcome.Surrendered;
+        hand.IsComplete = true;
+        PayHand(hand);
+        FinishRound();
+    }
+
+    private static void ValidateStartingBankroll(decimal startingBankroll)
+    {
+        if (startingBankroll <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(startingBankroll));
+        }
     }
 
     private void ResolveInitialBlackjack()
     {
-        if (PlayerHand.IsBlackjack && DealerHand.IsBlackjack)
+        PlayerHandState hand = _playerHands[0];
+
+        if (hand.Hand.IsBlackjack && DealerHand.IsBlackjack)
         {
-            CompleteRound(RoundOutcome.Push);
+            hand.Outcome = RoundOutcome.Push;
         }
-        else if (PlayerHand.IsBlackjack)
+        else if (hand.Hand.IsBlackjack)
         {
-            CompleteRound(RoundOutcome.PlayerBlackjack);
+            hand.Outcome = RoundOutcome.PlayerBlackjack;
         }
         else
         {
-            CompleteRound(RoundOutcome.DealerWin);
+            hand.Outcome = RoundOutcome.DealerWin;
         }
+
+        hand.IsComplete = true;
+        PayHand(hand);
+        FinishRound();
     }
 
-    private void CompleteRound(RoundOutcome outcome)
+    private void AdvanceToNextHandOrDealer()
     {
-        Outcome = outcome;
-        State = RoundState.RoundOver;
-
-        Bankroll += outcome switch
+        for (int index = ActiveHandIndex + 1; index < _playerHands.Count; index++)
         {
-            RoundOutcome.PlayerBlackjack => CurrentBet * 2.5m,
-            RoundOutcome.PlayerWin or RoundOutcome.DealerBust => CurrentBet * 2m,
-            RoundOutcome.Push => CurrentBet,
-            RoundOutcome.Surrendered => CurrentBet * 0.5m,
+            if (!_playerHands[index].IsComplete)
+            {
+                ActiveHandIndex = index;
+                return;
+            }
+        }
+
+        ResolveDealerAndHands();
+    }
+
+    private void MoveToFirstIncompleteHandOrDealer()
+    {
+        int nextHandIndex = _playerHands.FindIndex(hand => !hand.IsComplete);
+
+        if (nextHandIndex >= 0)
+        {
+            ActiveHandIndex = nextHandIndex;
+            return;
+        }
+
+        ResolveDealerAndHands();
+    }
+
+    private void ResolveDealerAndHands()
+    {
+        bool dealerNeedsToPlay = _playerHands.Any(hand => !hand.Hand.IsBust);
+
+        if (dealerNeedsToPlay)
+        {
+            while (DealerHand.Score < 17)
+            {
+                DealerHand.Add(_deck.Draw());
+            }
+        }
+
+        foreach (PlayerHandState hand in _playerHands)
+        {
+            if (hand.Outcome == RoundOutcome.PlayerBust)
+            {
+                hand.IsComplete = true;
+                continue;
+            }
+
+            hand.Outcome = GetOutcomeAgainstDealer(hand.Hand);
+            hand.IsComplete = true;
+            PayHand(hand);
+        }
+
+        FinishRound();
+    }
+
+    private RoundOutcome GetOutcomeAgainstDealer(Hand playerHand)
+    {
+        if (DealerHand.IsBust)
+        {
+            return RoundOutcome.DealerBust;
+        }
+
+        if (playerHand.Score > DealerHand.Score)
+        {
+            return RoundOutcome.PlayerWin;
+        }
+
+        if (playerHand.Score < DealerHand.Score)
+        {
+            return RoundOutcome.DealerWin;
+        }
+
+        return RoundOutcome.Push;
+    }
+
+    private void PayHand(PlayerHandState hand)
+    {
+        Bankroll += hand.Outcome switch
+        {
+            RoundOutcome.PlayerBlackjack => hand.Bet * 2.5m,
+            RoundOutcome.PlayerWin or RoundOutcome.DealerBust => hand.Bet * 2m,
+            RoundOutcome.Push => hand.Bet,
+            RoundOutcome.Surrendered => hand.Bet * 0.5m,
             _ => 0m
         };
     }
 
-    private void EnsurePlayerTurn()
+    private void FinishRound()
     {
-        if (State != RoundState.PlayerTurn)
+        State = RoundState.RoundOver;
+        ActiveHandIndex = -1;
+
+        RoundOutcome[] outcomes = _playerHands
+            .Select(hand => hand.Outcome)
+            .Distinct()
+            .ToArray();
+
+        Outcome = outcomes.Length == 1
+            ? outcomes[0]
+            : RoundOutcome.Mixed;
+    }
+
+    private PlayerHandState GetActiveHand()
+    {
+        if (State != RoundState.PlayerTurn || ActiveHand is null)
         {
             throw new InvalidOperationException("No player turn is active.");
         }
+
+        return ActiveHand;
     }
 }

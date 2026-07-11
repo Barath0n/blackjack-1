@@ -12,6 +12,14 @@ public sealed class Deck
         Shuffle();
     }
 
+    internal Deck(IEnumerable<Card> drawOrder)
+    {
+        ArgumentNullException.ThrowIfNull(drawOrder);
+
+        _random = Random.Shared;
+        _cards = drawOrder.Reverse().ToList();
+    }
+
     public int RemainingCards => _cards.Count;
 
     public Card Draw()

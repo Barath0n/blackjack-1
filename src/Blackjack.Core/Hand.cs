@@ -27,6 +27,10 @@ public sealed class Hand
 
     public bool IsBust => Score > 21;
 
+    public bool CanSplit =>
+        _cards.Count == 2 &&
+        _cards[0].BlackjackValue == _cards[1].BlackjackValue;
+
     public bool IsSoft
     {
         get

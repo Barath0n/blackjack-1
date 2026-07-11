@@ -66,7 +66,8 @@
                                Foreground="White"
                                FontSize="18"
                                FontWeight="Bold" />
-                    <TextBlock Text="   Einsatz "
+                    <TextBlock x:Name="CurrentBetLabel"
+                               Text="   Einsatz "
                                Foreground="#A9C4B5"
                                FontSize="16" />
                     <TextBlock x:Name="CurrentBetText"
@@ -96,7 +97,7 @@
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
-    		    <RowDefinition Height="*" />
+                    <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
@@ -132,34 +133,109 @@
                     <TextBlock x:Name="StatusText"
                                HorizontalAlignment="Center"
                                TextAlignment="Center"
+                               TextWrapping="Wrap"
                                Foreground="{StaticResource AccentBrush}"
                                FontSize="18"
                                FontWeight="SemiBold" />
                 </Border>
 
-                <StackPanel Grid.Row="2"
-                            VerticalAlignment="Bottom">
-                    <TextBlock Text="SPIELER"
-                               HorizontalAlignment="Center"
-                               Foreground="#BBD4C6"
-                               FontSize="14"
-                               FontWeight="Bold" />
-                    <ItemsControl x:Name="PlayerCards"
-                                  Margin="0,8,0,0"
-                                  HorizontalAlignment="Center"
-                                  ItemTemplate="{StaticResource CardTemplate}">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <StackPanel Orientation="Horizontal" />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                    </ItemsControl>
-                    <TextBlock x:Name="PlayerScoreText"
-                               HorizontalAlignment="Center"
-                               Foreground="White"
-                               FontSize="18"
-                               FontWeight="SemiBold" />
-                </StackPanel>
+                <Grid x:Name="PlayerHandsGrid"
+                      Grid.Row="2"
+                      VerticalAlignment="Bottom">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+
+                    <Border x:Name="PlayerHand1Border"
+                            Grid.Column="0"
+                            Margin="6"
+                            Padding="8"
+                            Background="#22071A12"
+                            BorderBrush="#376B53"
+                            BorderThickness="1"
+                            CornerRadius="16">
+                        <StackPanel>
+                            <TextBlock x:Name="PlayerHand1Title"
+                                       Text="SPIELER"
+                                       HorizontalAlignment="Center"
+                                       Foreground="#BBD4C6"
+                                       FontSize="14"
+                                       FontWeight="Bold" />
+                            <ItemsControl x:Name="PlayerCards1"
+                                          Margin="0,8,0,0"
+                                          HorizontalAlignment="Center"
+                                          ItemTemplate="{StaticResource CardTemplate}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                            <TextBlock x:Name="PlayerScore1Text"
+                                       HorizontalAlignment="Center"
+                                       Foreground="White"
+                                       FontSize="18"
+                                       FontWeight="SemiBold" />
+                            <TextBlock x:Name="PlayerBet1Text"
+                                       Margin="0,3,0,0"
+                                       HorizontalAlignment="Center"
+                                       Foreground="#A9C4B5"
+                                       FontSize="14" />
+                            <TextBlock x:Name="PlayerResult1Text"
+                                       Margin="0,3,0,0"
+                                       HorizontalAlignment="Center"
+                                       Foreground="{StaticResource AccentBrush}"
+                                       FontSize="14"
+                                       FontWeight="SemiBold" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border x:Name="PlayerHand2Border"
+                            Grid.Column="1"
+                            Margin="6"
+                            Padding="8"
+                            Background="#22071A12"
+                            BorderBrush="#376B53"
+                            BorderThickness="1"
+                            CornerRadius="16"
+                            Visibility="Collapsed">
+                        <StackPanel>
+                            <TextBlock x:Name="PlayerHand2Title"
+                                       Text="HAND 2"
+                                       HorizontalAlignment="Center"
+                                       Foreground="#BBD4C6"
+                                       FontSize="14"
+                                       FontWeight="Bold" />
+                            <ItemsControl x:Name="PlayerCards2"
+                                          Margin="0,8,0,0"
+                                          HorizontalAlignment="Center"
+                                          ItemTemplate="{StaticResource CardTemplate}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                            <TextBlock x:Name="PlayerScore2Text"
+                                       HorizontalAlignment="Center"
+                                       Foreground="White"
+                                       FontSize="18"
+                                       FontWeight="SemiBold" />
+                            <TextBlock x:Name="PlayerBet2Text"
+                                       Margin="0,3,0,0"
+                                       HorizontalAlignment="Center"
+                                       Foreground="#A9C4B5"
+                                       FontSize="14" />
+                            <TextBlock x:Name="PlayerResult2Text"
+                                       Margin="0,3,0,0"
+                                       HorizontalAlignment="Center"
+                                       Foreground="{StaticResource AccentBrush}"
+                                       FontSize="14"
+                                       FontWeight="SemiBold" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
             </Grid>
         </Border>
 
@@ -182,7 +258,7 @@
                                VerticalAlignment="Center"
                                Foreground="#A9C4B5"
                                FontSize="15" />
-	            <ComboBox x:Name="BetSelector"
+                    <ComboBox x:Name="BetSelector"
                               Width="95"
                               Height="42"
                               Margin="0,0,6,0"
@@ -213,6 +289,9 @@
                     <Button x:Name="DoubleButton"
                             Content="Verdoppeln"
                             Click="DoubleButton_Click" />
+                    <Button x:Name="SplitButton"
+                            Content="Teilen"
+                            Click="SplitButton_Click" />
                     <Button x:Name="SurrenderButton"
                             Content="Aufgeben"
                             Click="SurrenderButton_Click" />
