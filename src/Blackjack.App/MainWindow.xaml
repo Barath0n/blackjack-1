@@ -3,27 +3,102 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Blackjack Remastered"
         Width="1180"
-        Height="760"
-        MinWidth="920"
-        MinHeight="650"
+        Height="900"
+        MinWidth="1100"
+        MinHeight="890"
         WindowStartupLocation="CenterScreen"
         Background="#071A12">
     <Window.Resources>
         <DataTemplate x:Key="CardTemplate">
-            <Border Width="92"
-                    Height="132"
+            <Border Width="96"
+                    Height="136"
                     Margin="7"
-                    CornerRadius="10"
+                    CornerRadius="11"
                     Background="#FFF9EE"
-                    BorderBrush="#E2D7C4"
-                    BorderThickness="2">
-                <TextBlock Text="{Binding}"
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center"
-                           FontFamily="Segoe UI Symbol"
-                           FontSize="30"
-                           FontWeight="Bold"
-                           Foreground="#161616" />
+                    BorderBrush="#D8CBB7"
+                    BorderThickness="2"
+                    SnapsToDevicePixels="True">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="9"
+                                      Direction="270"
+                                      Opacity="0.28"
+                                      ShadowDepth="3" />
+                </Border.Effect>
+
+                <Grid>
+                    <Grid Visibility="{Binding FrontVisibility}">
+                        <Grid Margin="8">
+                            <StackPanel HorizontalAlignment="Left"
+                                        VerticalAlignment="Top">
+                                <TextBlock Text="{Binding Rank}"
+                                           FontFamily="Georgia"
+                                           FontSize="22"
+                                           FontWeight="Bold"
+                                           Foreground="{Binding Foreground}" />
+                                <TextBlock Text="{Binding Suit}"
+                                           Margin="0,-4,0,0"
+                                           FontFamily="Segoe UI Symbol"
+                                           FontSize="19"
+                                           Foreground="{Binding Foreground}" />
+                            </StackPanel>
+
+                            <TextBlock Text="{Binding Suit}"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       FontFamily="Segoe UI Symbol"
+                                       FontSize="43"
+                                       FontWeight="SemiBold"
+                                       Foreground="{Binding Foreground}" />
+
+                            <StackPanel HorizontalAlignment="Right"
+                                        VerticalAlignment="Bottom"
+                                        RenderTransformOrigin="0.5,0.5">
+                                <StackPanel.RenderTransform>
+                                    <RotateTransform Angle="180" />
+                                </StackPanel.RenderTransform>
+
+                                <TextBlock Text="{Binding Rank}"
+                                           FontFamily="Georgia"
+                                           FontSize="22"
+                                           FontWeight="Bold"
+                                           Foreground="{Binding Foreground}" />
+                                <TextBlock Text="{Binding Suit}"
+                                           Margin="0,-4,0,0"
+                                           FontFamily="Segoe UI Symbol"
+                                           FontSize="19"
+                                           Foreground="{Binding Foreground}" />
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+
+                    <Grid Visibility="{Binding BackVisibility}"
+                          Margin="5">
+                        <Border CornerRadius="7"
+                                Background="#183B5A"
+                                BorderBrush="#D7B75B"
+                                BorderThickness="2">
+                            <Grid Margin="5">
+                                <Border CornerRadius="4"
+                                        BorderBrush="#8FB4CC"
+                                        BorderThickness="1" />
+
+                                <TextBlock Text="◆  ◆  ◆&#x0a;  ◆  ◆&#x0a;◆  ◆  ◆"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           TextAlignment="Center"
+                                           FontFamily="Segoe UI Symbol"
+                                           FontSize="15"
+                                           Foreground="#D7E4EC"
+                                           LineHeight="19" />
+
+                                <Border Margin="10"
+                                        CornerRadius="3"
+                                        BorderBrush="#D7B75B"
+                                        BorderThickness="1" />
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Grid>
             </Border>
         </DataTemplate>
     </Window.Resources>
@@ -99,6 +174,8 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
                 <StackPanel Grid.Row="0">
@@ -124,7 +201,7 @@
                                FontWeight="SemiBold" />
                 </StackPanel>
 
-                <Border Grid.Row="1"
+                <Border Grid.Row="2"
                         Margin="110,18"
                         Padding="18,10"
                         VerticalAlignment="Center"
@@ -140,7 +217,7 @@
                 </Border>
 
                 <Grid x:Name="PlayerHandsGrid"
-                      Grid.Row="2"
+                      Grid.Row="4"
                       VerticalAlignment="Bottom">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition />

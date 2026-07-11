@@ -147,7 +147,7 @@ public partial class MainWindow : Window
         if (index >= _game.PlayerHands.Count)
         {
             title.Text = "SPIELER";
-            cards.ItemsSource = Array.Empty<string>();
+            cards.ItemsSource = Array.Empty<CardVisualModel>();
             score.Text = string.Empty;
             bet.Text = string.Empty;
             result.Text = string.Empty;
@@ -165,7 +165,7 @@ public partial class MainWindow : Window
             : "SPIELER";
 
         cards.ItemsSource = playerHand.Hand.Cards
-            .Select(card => card.DisplayName)
+            .Select(CardVisualModel.FromCard)
             .ToArray();
 
         score.Text = $"Total: {playerHand.Hand.Score}";
@@ -188,7 +188,7 @@ public partial class MainWindow : Window
             : new Thickness(1);
     }
 
-    private string[] GetDealerCards()
+    private CardVisualModel[] GetDealerCards()
     {
         if (_game.DealerHand.Cards.Count == 0)
         {
@@ -198,12 +198,15 @@ public partial class MainWindow : Window
         if (!_game.IsDealerHoleCardHidden)
         {
             return _game.DealerHand.Cards
-                .Select(card => card.DisplayName)
+                .Select(CardVisualModel.FromCard)
                 .ToArray();
         }
 
         return _game.DealerHand.Cards
-            .Select((card, index) => index == 1 ? "🂠" : card.DisplayName)
+            .Select((card, index) =>
+                index == 1
+                    ? CardVisualModel.FaceDown
+                    : CardVisualModel.FromCard(card))
             .ToArray();
     }
 
