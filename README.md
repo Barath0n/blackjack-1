@@ -6,6 +6,9 @@ Ian P. (ippavlin).
 This repository was originally created as a fork and is now maintained as an
 independent standalone project.
 
+The project contains both the preserved original version and a modern
+Remastered edition built with WPF and .NET 10.
+
 ## Project versions / Branches
 
 - `remaster` — active modernized version built with WPF and .NET 10
@@ -23,7 +26,7 @@ The original v0.1.9-pre version remains preserved for historical reference.
 Original author: Ian P. (ippavlin)
 
 The original project provided the foundation for this repository. Further
-maintenance and development are handled independently.
+maintenance and the Remastered edition are developed independently.
 
 CREDITS
 
