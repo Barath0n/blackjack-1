@@ -1,0 +1,32 @@
+name: Build and Test
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Windows / .NET 10
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore dependencies
+        run: dotnet restore .\Blackjack.sln
+
+      - name: Build solution
+        run: dotnet build .\Blackjack.sln --configuration Release --no-restore
+
+      - name: Run tests
+        run: dotnet test .\Blackjack.sln --configuration Release --no-build --verbosity normal
