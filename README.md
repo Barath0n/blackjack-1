@@ -1,15 +1,15 @@
-Blackjack
-================
+# Blackjack — Legacy v0.1.9-pre
 
-Author: Ian P (ippavlin)
+This branch preserves the legacy v0.1.9-pre version of the Blackjack project.
 
-**Screenshot:** http://i.imgur.com/HsNqU.png (older version)
+It is kept for historical reference and compatibility. Current development
+takes place on the `master` branch.
 
-A blackjack game in C#. The game currently handles Hits and Stands,
-Double-downs, Surrenders, and I'm currently working on Splits, as well
-as simulating the dealer's hand if the dealer's score is <17. Win/Lose
-checks are in place. The player can only have a total of 9 cards, or
-else they lose.
+## Original project
+
+Original author: Ian P. (ippavlin)
+
+This version is based on the original C# blackjack implementation.
 
 CREDITS
 
