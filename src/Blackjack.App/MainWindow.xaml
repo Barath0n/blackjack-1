@@ -201,12 +201,21 @@
                                FontWeight="SemiBold" />
                 </StackPanel>
 
-                <Border Grid.Row="2"
+                <Border x:Name="StatusBorder"
+                        Grid.Row="2"
                         Margin="110,18"
                         Padding="18,10"
                         VerticalAlignment="Center"
                         Background="#AA071A12"
-                        CornerRadius="12">
+                        BorderThickness="0"
+                        CornerRadius="12"
+                        RenderTransformOrigin="0.5,0.5">
+                    <Border.RenderTransform>
+                        <ScaleTransform x:Name="StatusScale"
+                                        ScaleX="1"
+                                        ScaleY="1" />
+                    </Border.RenderTransform>
+
                     <TextBlock x:Name="StatusText"
                                HorizontalAlignment="Center"
                                TextAlignment="Center"
@@ -374,7 +383,8 @@
                             Click="SurrenderButton_Click" />
                 </StackPanel>
 
-                <Button Grid.Column="2"
+                <Button x:Name="ResetButton"
+                        Grid.Column="2"
                         Content="Session zurücksetzen"
                         Click="ResetButton_Click" />
             </Grid>
