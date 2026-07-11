@@ -3,7 +3,7 @@
 This branch preserves the legacy v0.1.9-pre version of the Blackjack project.
 
 It is kept for historical reference and compatibility. Current development
-takes place on the `master` branch.
+takes place on the `remastered` branch.
 
 ## Original project
 
