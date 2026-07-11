@@ -1,0 +1,21 @@
+<Application x:Class="Blackjack.App.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+        <SolidColorBrush x:Key="PanelBrush" Color="#CC11281E" />
+        <SolidColorBrush x:Key="AccentBrush" Color="#E7B75B" />
+
+        <Style TargetType="Button">
+            <Setter Property="Margin" Value="6" />
+            <Setter Property="Padding" Value="18,10" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#FFF7E8" />
+            <Setter Property="Background" Value="#234D3B" />
+            <Setter Property="BorderBrush" Value="#5B8B72" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+    </Application.Resources>
+</Application>

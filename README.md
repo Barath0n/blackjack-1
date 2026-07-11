@@ -1,34 +1,46 @@
-Blackjack
-================
+# Blackjack Remastered
 
-Author: Ian P (ippavlin)
+A clean-room modernization of the original 2012 WinForms blackjack project.
 
-**Screenshot:** http://i.imgur.com/HsNqU.png (older version)
+## Current status
 
-A blackjack game in C#. The game currently handles Hits and Stands,
-Double-downs, Surrenders, and I'm currently working on Splits, as well
-as simulating the dealer's hand if the dealer's score is <17. Win/Lose
-checks are in place. The player can only have a total of 9 cards, or
-else they lose.
+The first remaster milestone provides:
 
-CREDITS
+- a separate, testable blackjack engine
+- a WPF desktop client targeting .NET 10
+- correct ace handling (1 or 11)
+- a real 52-card deck without duplicate draws
+- hit, stand, double down and surrender
+- correct normal-win, blackjack, push and surrender payouts
+- a responsive starter UI without external assets
 
-Background from Flickr.
+Split hands, persistence, statistics, card artwork, animations and sound are planned for later milestones.
 
-Cards from: http://www.eludication.org/playingcards.html (released under a
-Creative Commons license)
+## Requirements
 
-LICENSE
+- Windows 10/11
+- Visual Studio 2022 or newer with the **.NET desktop development** workload
+- .NET 10 SDK
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
+## Run
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+```powershell
+dotnet restore
+dotnet build
+dotnet run --project .\src\Blackjack.App\Blackjack.App.csproj
+```
 
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
+## Tests
+
+```powershell
+dotnet test
+```
+
+## Legacy version
+
+The complete original v0.1.9pre source should remain preserved on:
+
+- branch: `legacy-v0.1.9pre`
+- annotated tag: `v0.1.9pre`
+
+See [MIGRATION.md](MIGRATION.md) for the exact commands.
