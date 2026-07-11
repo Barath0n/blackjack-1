@@ -1,15 +1,29 @@
-Blackjack
-================
+# Blackjack
 
-Author: Ian P (ippavlin)
+A personal C# blackjack project based on the original implementation by
+Ian P. (ippavlin).
 
-**Screenshot:** http://i.imgur.com/HsNqU.png (older version)
+This repository was originally created as a fork and is now maintained as an
+independent standalone project.
 
-A blackjack game in C#. The game currently handles Hits and Stands,
-Double-downs, Surrenders, and I'm currently working on Splits, as well
-as simulating the dealer's hand if the dealer's score is <17. Win/Lose
-checks are in place. The player can only have a total of 9 cards, or
-else they lose.
+## Project versions / Branches
+
+- `remaster` — active modernized version built with WPF and .NET 10
+- `master` — original repository history and previous development line
+- `legacy-v0.1.9pre` — preserved original v0.1.9-pre source
+
+The Remastered version is the current modernization of the project and
+contains a newly structured, testable blackjack engine together with a
+modern Windows desktop interface.
+
+The original v0.1.9-pre version remains preserved for historical reference.
+
+## Original project
+
+Original author: Ian P. (ippavlin)
+
+The original project provided the foundation for this repository. Further
+maintenance and development are handled independently.
 
 CREDITS
 
