@@ -7,24 +7,45 @@ public sealed class BlackjackGame
     private readonly int _reshuffleThreshold;
     private Deck _deck;
 
-    public BlackjackGame(decimal startingBankroll = 500m, Random? random = null)
+    public BlackjackGame(
+        decimal startingBankroll = 500m,
+        Random? random = null,
+        BlackjackRules? rules = null)
     {
         ValidateStartingBankroll(startingBankroll);
 
+        Rules = rules ?? new BlackjackRules();
         Bankroll = startingBankroll;
         _random = random;
-        _reshuffleThreshold = 15;
-        _deck = new Deck(random);
+        _reshuffleThreshold = 15 * Rules.DeckCount;
+        _deck = new Deck(Rules.DeckCount, random);
     }
 
-    internal BlackjackGame(decimal startingBankroll, IEnumerable<Card> drawOrder)
+    internal BlackjackGame(
+        decimal startingBankroll,
+        IEnumerable<Card> drawOrder)
+        : this(
+            startingBankroll,
+            drawOrder,
+            new BlackjackRules())
+    {
+    }
+
+    internal BlackjackGame(
+        decimal startingBankroll,
+        IEnumerable<Card> drawOrder,
+        BlackjackRules rules)
     {
         ValidateStartingBankroll(startingBankroll);
+        ArgumentNullException.ThrowIfNull(rules);
 
+        Rules = rules;
         Bankroll = startingBankroll;
         _reshuffleThreshold = 0;
         _deck = new Deck(drawOrder);
     }
+
+    public BlackjackRules Rules { get; }
 
     public decimal Bankroll { get; private set; }
 
@@ -87,7 +108,9 @@ public sealed class BlackjackGame
 
         if (_deck.RemainingCards < _reshuffleThreshold)
         {
-            _deck = new Deck(_random);
+            _deck = new Deck(
+                Rules.DeckCount,
+                _random);
         }
 
         _playerHands.Clear();
@@ -231,7 +254,7 @@ public sealed class BlackjackGame
 
     private static void ValidateStartingBankroll(decimal startingBankroll)
     {
-        if (startingBankroll <= 0)
+        if (startingBankroll < 0)
         {
             throw new ArgumentOutOfRangeException(nameof(startingBankroll));
         }
@@ -292,7 +315,7 @@ public sealed class BlackjackGame
 
         if (dealerNeedsToPlay)
         {
-            while (DealerHand.Score < 17)
+            while (DealerShouldHit())
             {
                 DealerHand.Add(_deck.Draw());
             }
@@ -313,6 +336,14 @@ public sealed class BlackjackGame
 
         FinishRound();
     }
+
+    private bool DealerShouldHit() =>
+        DealerHand.Score < 17 ||
+        (
+            Rules.DealerHitsSoft17 &&
+            DealerHand.Score == 17 &&
+            DealerHand.IsSoft
+        );
 
     private RoundOutcome GetOutcomeAgainstDealer(Hand playerHand)
     {
@@ -336,14 +367,29 @@ public sealed class BlackjackGame
 
     private void PayHand(PlayerHandState hand)
     {
-        Bankroll += hand.Outcome switch
+        decimal payout = hand.Outcome switch
         {
-            RoundOutcome.PlayerBlackjack => hand.Bet * 2.5m,
-            RoundOutcome.PlayerWin or RoundOutcome.DealerBust => hand.Bet * 2m,
-            RoundOutcome.Push => hand.Bet,
-            RoundOutcome.Surrendered => hand.Bet * 0.5m,
-            _ => 0m
+            RoundOutcome.PlayerBlackjack =>
+                hand.Bet * 2.5m,
+
+            RoundOutcome.PlayerWin or
+            RoundOutcome.DealerBust =>
+                hand.Bet * 2m,
+
+            RoundOutcome.Push =>
+                hand.Bet,
+
+            RoundOutcome.Surrendered =>
+                hand.Bet * 0.5m,
+
+            _ =>
+                0m
         };
+
+        Bankroll += decimal.Round(
+            payout,
+            2,
+            MidpointRounding.AwayFromZero);
     }
 
     private void FinishRound()

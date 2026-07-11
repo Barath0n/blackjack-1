@@ -7,8 +7,25 @@
         MinWidth="1100"
         MinHeight="890"
         WindowStartupLocation="CenterScreen"
+        Closing="MainWindow_Closing"
         Background="#071A12">
     <Window.Resources>
+        <Style x:Key="CompactButtonStyle"
+               TargetType="Button"
+               BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Margin" Value="3" />
+            <Setter Property="Padding" Value="8,6" />
+            <Setter Property="FontSize" Value="13" />
+        </Style>
+
+        <Style x:Key="ActionButtonStyle"
+               TargetType="Button"
+               BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Margin" Value="3" />
+            <Setter Property="Padding" Value="11,8" />
+            <Setter Property="FontSize" Value="14" />
+        </Style>
+
         <DataTemplate x:Key="CardTemplate">
             <Border Width="96"
                     Height="136"
@@ -118,6 +135,7 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition />
                 </Grid.ColumnDefinitions>
 
                 <StackPanel>
@@ -125,13 +143,28 @@
                                Foreground="{StaticResource AccentBrush}"
                                FontSize="25"
                                FontWeight="Bold" />
-                    <TextBlock Text="2012 → 2026"
+                    <TextBlock x:Name="RulesSummaryText"
                                Margin="0,3,0,0"
                                Foreground="#A9C4B5"
                                FontSize="13" />
                 </StackPanel>
 
                 <StackPanel Grid.Column="1"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Orientation="Horizontal">
+                    <Button x:Name="StatisticsButton"
+                            Style="{StaticResource CompactButtonStyle}"
+                            Content="Statistik"
+                            Click="StatisticsButton_Click" />
+                    <Button x:Name="SettingsButton"
+                            Style="{StaticResource CompactButtonStyle}"
+                            Content="Einstellungen"
+                            Click="SettingsButton_Click" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="2"
+                            HorizontalAlignment="Right"
                             Orientation="Horizontal"
                             VerticalAlignment="Center">
                     <TextBlock Text="Guthaben "
@@ -326,7 +359,7 @@
         </Border>
 
         <Border Grid.Row="2"
-                Padding="12"
+                Padding="10"
                 Background="{StaticResource PanelBrush}"
                 CornerRadius="14">
             <Grid>
@@ -344,21 +377,44 @@
                                VerticalAlignment="Center"
                                Foreground="#A9C4B5"
                                FontSize="15" />
-                    <ComboBox x:Name="BetSelector"
-                              Width="95"
-                              Height="42"
-                              Margin="0,0,6,0"
-                              Padding="8,0"
-                              VerticalContentAlignment="Center"
-                              SelectedIndex="2"
-                              FontSize="15">
-                        <ComboBoxItem Content="5 €" Tag="5" />
-                        <ComboBoxItem Content="10 €" Tag="10" />
-                        <ComboBoxItem Content="25 €" Tag="25" />
-                        <ComboBoxItem Content="50 €" Tag="50" />
-                        <ComboBoxItem Content="100 €" Tag="100" />
-                    </ComboBox>
+                    <TextBox x:Name="BetInput"
+                             Width="92"
+                             Height="40"
+                             Padding="9,5"
+                             VerticalContentAlignment="Center"
+                             FontSize="15"
+                             KeyDown="BetInput_KeyDown" />
+                    <TextBlock Text="€"
+                               Margin="6,0,4,0"
+                               VerticalAlignment="Center"
+                               Foreground="#A9C4B5"
+                               FontSize="15" />
+                    <Button x:Name="QuickBet1Button"
+                            Style="{StaticResource CompactButtonStyle}"
+                            Content="1 %"
+                            Tag="0.01"
+                            Click="QuickBetButton_Click" />
+                    <Button x:Name="QuickBet5Button"
+                            Style="{StaticResource CompactButtonStyle}"
+                            Content="5 %"
+                            Tag="0.05"
+                            Click="QuickBetButton_Click" />
+                    <Button x:Name="QuickBet10Button"
+                            Style="{StaticResource CompactButtonStyle}"
+                            Content="10 %"
+                            Tag="0.10"
+                            Click="QuickBetButton_Click" />
+                    <Button x:Name="QuickBet25Button"
+                            Style="{StaticResource CompactButtonStyle}"
+                            Content="25 %"
+                            Tag="0.25"
+                            Click="QuickBetButton_Click" />
+                    <Button x:Name="QuickBetMaxButton"
+                            Style="{StaticResource CompactButtonStyle}"
+                            Content="Max"
+                            Click="QuickBetMaxButton_Click" />
                     <Button x:Name="DealButton"
+                            Style="{StaticResource ActionButtonStyle}"
                             Content="Austeilen"
                             Click="DealButton_Click" />
                 </StackPanel>
@@ -367,24 +423,30 @@
                             HorizontalAlignment="Center"
                             Orientation="Horizontal">
                     <Button x:Name="HitButton"
+                            Style="{StaticResource ActionButtonStyle}"
                             Content="Karte"
                             Click="HitButton_Click" />
                     <Button x:Name="StandButton"
+                            Style="{StaticResource ActionButtonStyle}"
                             Content="Halten"
                             Click="StandButton_Click" />
                     <Button x:Name="DoubleButton"
+                            Style="{StaticResource ActionButtonStyle}"
                             Content="Verdoppeln"
                             Click="DoubleButton_Click" />
                     <Button x:Name="SplitButton"
+                            Style="{StaticResource ActionButtonStyle}"
                             Content="Teilen"
                             Click="SplitButton_Click" />
                     <Button x:Name="SurrenderButton"
+                            Style="{StaticResource ActionButtonStyle}"
                             Content="Aufgeben"
                             Click="SurrenderButton_Click" />
                 </StackPanel>
 
                 <Button x:Name="ResetButton"
                         Grid.Column="2"
+                        Style="{StaticResource ActionButtonStyle}"
                         Content="Session zurücksetzen"
                         Click="ResetButton_Click" />
             </Grid>

@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Input;
 using System.Windows.Media.Animation;
 using Blackjack.Core;
 
@@ -20,18 +21,40 @@ public partial class MainWindow : Window
     private readonly int[] _visiblePlayerCardCounts =
         [int.MaxValue, int.MaxValue];
 
-    private BlackjackGame _game = new();
+    private readonly PlayerDataStore _dataStore;
+    private readonly PlayerData _playerData;
+
+    private AppSettings _settings;
+    private BlackjackGame _game;
     private bool _isBusy;
     private bool _forceDealerHoleCardHidden;
     private bool _suppressRoundResult;
+    private bool _currentRoundRecorded = true;
     private int _visibleDealerCardCount = int.MaxValue;
     private string? _statusOverride;
     private decimal? _displayBankrollOverride;
-    private decimal _roundStartingBankroll = 500m;
+    private decimal _roundStartingBankroll;
 
     public MainWindow()
     {
         InitializeComponent();
+
+        _dataStore = new PlayerDataStore();
+        _playerData = _dataStore.Load();
+        _settings = _playerData.Settings;
+        _game = CreateGame(
+            _playerData.CurrentBankroll);
+
+        _roundStartingBankroll =
+            _game.Bankroll;
+
+        SetBetInput(
+            Math.Min(
+                _settings.LastBet,
+                Math.Max(
+                    _game.Bankroll,
+                    1m)));
+
         UpdateUi();
     }
 
@@ -41,12 +64,11 @@ public partial class MainWindow : Window
     {
         await RunAnimatedActionAsync(async () =>
         {
-            ComboBoxItem selectedItem =
-                (ComboBoxItem)BetSelector.SelectedItem;
+            decimal bet = GetEnteredBet();
 
-            decimal bet = decimal.Parse(
-                selectedItem.Tag.ToString()!,
-                CultureInfo.InvariantCulture);
+            _settings.LastBet = bet;
+            _playerData.Settings = _settings;
+            SaveData();
 
             await AnimateInitialDealAsync(bet);
         });
@@ -87,7 +109,61 @@ public partial class MainWindow : Window
         await RunAnimatedActionAsync(AnimateSurrenderAsync);
     }
 
-    private void ResetButton_Click(
+    private void QuickBetButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        if (
+            sender is not Button button ||
+            button.Tag is null)
+        {
+            return;
+        }
+
+        decimal percentage = decimal.Parse(
+            button.Tag.ToString()!,
+            CultureInfo.InvariantCulture);
+
+        decimal amount = Math.Max(
+            0.01m,
+            decimal.Round(
+                _game.Bankroll * percentage,
+                2,
+                MidpointRounding.AwayFromZero));
+
+        SetBetInput(
+            Math.Min(
+                amount,
+                _game.Bankroll));
+    }
+
+    private void QuickBetMaxButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        SetBetInput(
+            _game.Bankroll);
+    }
+
+    private void BetInput_KeyDown(
+        object sender,
+        KeyEventArgs e)
+    {
+        if (
+            e.Key != Key.Enter ||
+            !DealButton.IsEnabled)
+        {
+            return;
+        }
+
+        e.Handled = true;
+
+        DealButton.RaiseEvent(
+            new RoutedEventArgs(
+                Button.ClickEvent));
+    }
+
+    private void StatisticsButton_Click(
         object sender,
         RoutedEventArgs e)
     {
@@ -96,10 +172,112 @@ public partial class MainWindow : Window
             return;
         }
 
-        _game = new BlackjackGame();
-        _roundStartingBankroll = _game.Bankroll;
-        ResetAnimationOverrides();
-        UpdateUi();
+        StatisticsWindow window = new(
+            _playerData.SessionStatistics,
+            _playerData.LifetimeStatistics,
+            _game.Bankroll,
+            _playerData.SessionStartedAt)
+        {
+            Owner = this
+        };
+
+        window.ShowDialog();
+
+        if (window.DataChanged)
+        {
+            _playerData.SessionStartedAt =
+                window.SessionStartedAt;
+
+            SaveData();
+            UpdateUi();
+        }
+    }
+
+    private void SettingsButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        if (
+            _isBusy ||
+            _game.State == RoundState.PlayerTurn)
+        {
+            return;
+        }
+
+        SettingsWindow window = new(
+            _settings)
+        {
+            Owner = this
+        };
+
+        bool? result = window.ShowDialog();
+
+        if (result != true)
+        {
+            return;
+        }
+
+        _settings =
+            window.ResultSettings;
+
+        _playerData.Settings =
+            _settings;
+
+        StartNewSession();
+    }
+
+    private void MainWindow_Closing(
+        object? sender,
+        System.ComponentModel.CancelEventArgs e)
+    {
+        RecordCompletedRoundIfNeeded();
+
+        if (
+            _game.State != RoundState.PlayerTurn)
+        {
+            _playerData.CurrentBankroll =
+                _game.Bankroll;
+        }
+
+        if (TryParseMoney(
+            BetInput.Text,
+            out decimal enteredBet) &&
+            enteredBet > 0)
+        {
+            _settings.LastBet =
+                enteredBet;
+        }
+
+        _playerData.Settings =
+            _settings;
+
+        SaveData();
+    }
+
+    private void ResetButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        if (
+            _isBusy ||
+            _game.State == RoundState.PlayerTurn)
+        {
+            return;
+        }
+
+        MessageBoxResult result =
+            MessageBox.Show(
+                "Möchtest du die aktuelle Session wirklich zurücksetzen? Das Guthaben wird auf das eingestellte Startguthaben gesetzt und die Session-Statistik beginnt neu. Die Gesamtstatistik bleibt erhalten.",
+                "Session zurücksetzen",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+        if (result != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        StartNewSession();
     }
 
     private async Task RunAnimatedActionAsync(
@@ -125,6 +303,8 @@ public partial class MainWindow : Window
         }
         finally
         {
+            RecordCompletedRoundIfNeeded();
+
             _isBusy = false;
             ResetAnimationOverrides();
             UpdateUi();
@@ -137,6 +317,7 @@ public partial class MainWindow : Window
         _roundStartingBankroll = _game.Bankroll;
         decimal bankrollAfterBet = _game.Bankroll - bet;
 
+        _currentRoundRecorded = false;
         _game.StartRound(bet);
 
         _displayBankrollOverride = bankrollAfterBet;
@@ -518,20 +699,47 @@ public partial class MainWindow : Window
             ? "   Gesamteinsatz "
             : "   Einsatz ";
 
+        string deckLabel =
+            _settings.DeckCount == 1
+                ? "1 Deck"
+                : $"{_settings.DeckCount} Decks";
+
+        RulesSummaryText.Text =
+            $"2012 → 2026  •  {deckLabel}  •  " +
+            $"{(_settings.DealerHitsSoft17 ? "H17" : "S17")}";
+
         DealerCards.ItemsSource = GetDealerCards();
         UpdateDealerScore();
         UpdatePlayerHands();
+        UpdateQuickBetToolTips();
 
         bool interactionEnabled = !_isBusy;
-
-        DealButton.IsEnabled =
+        bool betControlsEnabled =
             interactionEnabled &&
             _game.State != RoundState.PlayerTurn &&
             _game.Bankroll > 0;
 
-        BetSelector.IsEnabled =
+        DealButton.IsEnabled =
+            betControlsEnabled;
+
+        BetInput.IsEnabled =
             interactionEnabled &&
             _game.State != RoundState.PlayerTurn;
+
+        QuickBet1Button.IsEnabled =
+            betControlsEnabled;
+
+        QuickBet5Button.IsEnabled =
+            betControlsEnabled;
+
+        QuickBet10Button.IsEnabled =
+            betControlsEnabled;
+
+        QuickBet25Button.IsEnabled =
+            betControlsEnabled;
+
+        QuickBetMaxButton.IsEnabled =
+            betControlsEnabled;
 
         HitButton.IsEnabled =
             interactionEnabled &&
@@ -553,7 +761,16 @@ public partial class MainWindow : Window
             interactionEnabled &&
             _game.CanSurrender;
 
-        ResetButton.IsEnabled = interactionEnabled;
+        StatisticsButton.IsEnabled =
+            interactionEnabled;
+
+        SettingsButton.IsEnabled =
+            interactionEnabled &&
+            _game.State != RoundState.PlayerTurn;
+
+        ResetButton.IsEnabled =
+            interactionEnabled &&
+            _game.State != RoundState.PlayerTurn;
 
         StatusText.Text = GetStatusText();
         ApplyStatusAppearance();
@@ -747,7 +964,7 @@ public partial class MainWindow : Window
         return _game.State switch
         {
             RoundState.WaitingForBet =>
-                "Einsatz wählen und die erste Runde starten.",
+                "Einsatz frei eingeben oder prozentual wählen und die Runde starten.",
 
             RoundState.PlayerTurn
                 when _game.IsSplitRound =>
@@ -984,6 +1201,192 @@ public partial class MainWindow : Window
         }
 
         return ResultTone.Neutral;
+    }
+
+    private BlackjackGame CreateGame(
+        decimal bankroll) =>
+        new(
+            startingBankroll: bankroll,
+            rules: _settings.CreateRules());
+
+    private void StartNewSession()
+    {
+        _game = CreateGame(
+            _settings.StartingBankroll);
+
+        _playerData.CurrentBankroll =
+            _game.Bankroll;
+
+        _playerData.SessionStatistics.Reset(
+            _game.Bankroll);
+
+        _playerData.SessionStartedAt =
+            DateTimeOffset.Now;
+
+        _roundStartingBankroll =
+            _game.Bankroll;
+
+        _currentRoundRecorded = true;
+
+        ResetAnimationOverrides();
+
+        SetBetInput(
+            Math.Min(
+                _settings.LastBet,
+                _game.Bankroll));
+
+        SaveData();
+        UpdateUi();
+    }
+
+    private void RecordCompletedRoundIfNeeded()
+    {
+        if (
+            _currentRoundRecorded ||
+            _game.State != RoundState.RoundOver)
+        {
+            return;
+        }
+
+        decimal netResult =
+            _game.Bankroll -
+            _roundStartingBankroll;
+
+        RoundOutcome[] outcomes =
+            _game.PlayerHands
+                .Select(hand => hand.Outcome)
+                .ToArray();
+
+        _playerData.SessionStatistics.RecordRound(
+            outcomes,
+            _game.CurrentBet,
+            netResult,
+            _game.Bankroll);
+
+        _playerData.LifetimeStatistics.RecordRound(
+            outcomes,
+            _game.CurrentBet,
+            netResult,
+            _game.Bankroll);
+
+        _playerData.CurrentBankroll =
+            _game.Bankroll;
+
+        _currentRoundRecorded = true;
+
+        SaveData();
+    }
+
+    private void SaveData()
+    {
+        _playerData.Settings =
+            _settings;
+
+        _dataStore.Save(
+            _playerData);
+    }
+
+    private decimal GetEnteredBet()
+    {
+        if (!TryParseMoney(
+            BetInput.Text,
+            out decimal bet))
+        {
+            throw new InvalidOperationException(
+                "Bitte gib einen gültigen Einsatz ein.");
+        }
+
+        if (bet <= 0)
+        {
+            throw new InvalidOperationException(
+                "Der Einsatz muss größer als 0 € sein.");
+        }
+
+        if (decimal.Round(
+            bet,
+            2,
+            MidpointRounding.AwayFromZero) != bet)
+        {
+            throw new InvalidOperationException(
+                "Der Einsatz darf höchstens zwei Nachkommastellen haben.");
+        }
+
+        if (bet > _game.Bankroll)
+        {
+            throw new InvalidOperationException(
+                $"Dein Einsatz darf dein Guthaben von {_game.Bankroll.ToString("C", GermanCulture)} nicht überschreiten.");
+        }
+
+        return bet;
+    }
+
+    private static bool TryParseMoney(
+        string text,
+        out decimal amount)
+    {
+        string normalized = text
+            .Replace("€", string.Empty)
+            .Trim();
+
+        return decimal.TryParse(
+            normalized,
+            NumberStyles.Number,
+            GermanCulture,
+            out amount) ||
+            decimal.TryParse(
+                normalized,
+                NumberStyles.Number,
+                CultureInfo.InvariantCulture,
+                out amount);
+    }
+
+    private void SetBetInput(
+        decimal amount)
+    {
+        BetInput.Text = Math.Max(
+            amount,
+            0m)
+            .ToString(
+                "0.##",
+                GermanCulture);
+
+        BetInput.CaretIndex =
+            BetInput.Text.Length;
+    }
+
+    private void UpdateQuickBetToolTips()
+    {
+        SetQuickBetToolTip(
+            QuickBet1Button,
+            0.01m);
+
+        SetQuickBetToolTip(
+            QuickBet5Button,
+            0.05m);
+
+        SetQuickBetToolTip(
+            QuickBet10Button,
+            0.10m);
+
+        SetQuickBetToolTip(
+            QuickBet25Button,
+            0.25m);
+
+        QuickBetMaxButton.ToolTip =
+            $"Gesamtes Guthaben: {_game.Bankroll.ToString("C", GermanCulture)}";
+    }
+
+    private void SetQuickBetToolTip(
+        Button button,
+        decimal percentage)
+    {
+        decimal amount = decimal.Round(
+            _game.Bankroll * percentage,
+            2,
+            MidpointRounding.AwayFromZero);
+
+        button.ToolTip =
+            $"{percentage.ToString("P0", GermanCulture)} = {amount.ToString("C", GermanCulture)}";
     }
 
     private static int CalculateScore(

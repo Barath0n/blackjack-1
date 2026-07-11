@@ -9,14 +9,20 @@ The remaster currently provides:
 - a separate, testable blackjack engine
 - a WPF desktop client targeting .NET 10
 - correct Ace handling (1 or 11)
-- a real 52-card deck without duplicate draws
+- configurable 1, 2, 4, 6 or 8 deck shoes
+- configurable S17/H17 dealer behavior
 - hit, stand, double down and late surrender
 - split hands with independent stakes and payouts
 - double after split and restricted split-Ace handling
 - correct blackjack, normal-win, push and surrender payouts
+- free stake entry without a fixed maximum
+- bankroll-based quick stakes: 1%, 5%, 10%, 25% and all-in
 - modern card visuals with suit colors and a custom card back
 - animated initial dealing and dealer play
 - responsive table layout and round-result feedback
+- configurable starting bankroll
+- persistent bankroll, settings and last stake
+- persistent session and lifetime statistics
 - deterministic regression tests for the adopted house rules
 
 The exact ruleset is documented in [RULES.md](RULES.md).
@@ -41,12 +47,15 @@ dotnet run --project .\src\Blackjack.App\Blackjack.App.csproj
 dotnet test
 ```
 
-## Planned
+## Local player data
 
-- configurable table rules
-- multi-deck shoes
-- statistics and persistence
-- sound effects and additional polish
+Settings, bankroll and statistics are stored outside the repository:
+
+```text
+%LOCALAPPDATA%\BlackjackRemastered\player-data.json
+```
+
+Deleting that file restores the application defaults on the next launch.
 
 ## Legacy version
 

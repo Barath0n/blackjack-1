@@ -1,16 +1,39 @@
 # Blackjack Remastered – Ruleset
 
-This document defines the rules currently implemented by the remaster. Blackjack rules vary between casinos, so these choices are treated as explicit house rules rather than universal rules.
+This document defines the default rules and the configurable table options implemented by the remaster. Blackjack rules vary between casinos, so these choices are treated as explicit house rules rather than universal rules.
+
+## Configurable table options
+
+The settings window can start a new session with:
+
+- starting bankroll: any positive amount with up to two decimal places
+- shoe size: 1, 2, 4, 6 or 8 standard decks
+- dealer behavior on soft 17:
+  - **S17**: dealer stands on soft 17 (default)
+  - **H17**: dealer hits soft 17
+
+Changing table settings starts a new session and resets the current bankroll to the configured starting bankroll. Lifetime statistics remain intact.
 
 ## Core rules
 
-- One standard 52-card deck is used.
-- The deck is replaced with a freshly shuffled deck when fewer than 15 cards remain before a new round.
+- Each deck contains the standard 52 cards without Jokers.
+- The shoe is freshly shuffled before play.
+- A new shoe is created before a round when fewer than 15 cards per configured deck remain.
 - Number cards count at face value.
 - Jack, Queen and King count as 10.
 - An Ace counts as 11 unless reducing one or more Aces to 1 is necessary to avoid a bust.
 - A hand over 21 busts immediately.
 - A tie is a push and returns the hand's stake.
+- Monetary payouts are rounded to cents.
+
+## Betting
+
+- The stake may be entered freely.
+- The stake must be greater than 0 and may not exceed the current bankroll.
+- Up to two decimal places are accepted.
+- Quick buttons set the stake to 1%, 5%, 10%, 25% or 100% (`Max`) of the current bankroll.
+- The last entered stake is saved locally and restored on the next launch.
+- An all-in stake is valid. Double down and split are then unavailable unless enough additional bankroll remains.
 
 ## Blackjack
 
@@ -23,7 +46,8 @@ This document defines the rules currently implemented by the remaster. Blackjack
 ## Dealer
 
 - The dealer draws on 16 or less.
-- The dealer stands on every 17, including soft 17 (S17).
+- With the default **S17** rule, the dealer stands on every 17, including soft 17.
+- With **H17** enabled, the dealer draws on soft 17 and stands on hard 17.
 - If every player hand has already busted, the dealer does not draw unnecessary cards.
 
 ## Double down
@@ -52,14 +76,31 @@ This document defines the rules currently implemented by the remaster. Blackjack
 - The dealer blackjack check happens before surrender can be offered.
 - Surrender returns half of the hand's stake.
 
+## Persistence and statistics
+
+The app stores its player data locally in:
+
+```text
+%LOCALAPPDATA%\BlackjackRemastered\player-data.json
+```
+
+The saved data contains:
+
+- table settings
+- last entered stake
+- current bankroll
+- current session start time
+- current session statistics
+- lifetime statistics
+
+A completed round updates both the session and lifetime statistics. Closing the app during an unfinished round does not permanently deduct that unfinished round's stake; the last completed bankroll is restored on the next launch.
+
 ## Deliberately not implemented yet
 
 - Insurance
 - Even money
 - Re-splitting
-- Multiple deck shoes
-- Configurable H17/S17 behavior
-- Configurable double restrictions
-- Side bets
+- configurable double restrictions
+- side bets
 
-These may be added later as optional settings without changing the default ruleset above.
+These may be added later without changing the default ruleset above.
